@@ -41,15 +41,12 @@
     [c sendData:data timeout:10];
 //    NSData* received = [c receive:@"2001:4860:4860::8888" port:53 timeout:10];
     
-    NSString *receivedHost = [NSString alloc];
-    UInt16 receivedPort;
-    
-    NSData* received = [c receive:&receivedHost port:&receivedPort timeout:10 error:&err];
+    ReceivedData* received = [c receiveWithTimeout:10 error:&err];
     if (err != nil && received == nil) {
         [NSException raise:@"receiveOnce" format:@"Failed: %@", err.localizedDescription];
     }
     
-    NSLog(@"Done. Received from %@:%d: %@", receivedHost, receivedPort, received);
+    NSLog(@"Done. Received from %@:%d: %@", received.host, received.port, received.data);
     
     [c close];
     

@@ -11,9 +11,10 @@
 
 typedef void (^ReceiveCallback)(NSData*, NSString *, UInt16);
 
+@implementation ReceivedData
+@end
 
 @interface MyDelegate : NSObject<GCDAsyncUdpSocketDelegate>
-
 @property (nonatomic, copy) ReceiveCallback callback;
 @property (nonatomic, strong) NSData *address;
 @end
@@ -74,19 +75,18 @@ withFilterContext:(id)filterContext
     [self.socket sendData:data withTimeout:timeout tag:0];
 }
 
--(NSData*)receive:(NSString**)host port:(UInt16*)port timeout:(NSTimeInterval)timeout error:(NSError**)error {
+-(ReceivedData*)receiveWithTimeout:(NSTimeInterval)timeout error:(NSError**)error {
     dispatch_semaphore_t sema = dispatch_semaphore_create(0);
     
-    __block NSData* result = nil;
-    __block NSString* responderHost = nil;
-    __block UInt16 responderPort = 0;
+    __block ReceivedData *result = [ReceivedData new];
     
     NSAssert(self.socket.connectedAddress != nil, @"Socket not connected");
     
-    MyDelegate *deleg = [[MyDelegate alloc] initWithAddress:self.socket.connectedAddress callback:^(NSData *data, NSString *_rHost, UInt16 _rPort) {
-        result = data;
-        responderHost = _rHost;
-        responderPort = _rPort;
+    MyDelegate *deleg = [[MyDelegate alloc] initWithAddress:self.socket.connectedAddress callback:^(NSData *data, NSString *host, UInt16 port) {
+        
+        result.data = [NSData dataWithData:data];
+        result.host = [NSString stringWithString:host];
+        result.port = port;
         dispatch_semaphore_signal(sema);
     }];
     
@@ -101,9 +101,6 @@ withFilterContext:(id)filterContext
     }
     
     dispatch_semaphore_wait(sema, semaTimeout);
-    
-    (*host) = responderHost;
-    (*port) = responderPort;
     
     self.innerDelegate = nil;
     return result;
